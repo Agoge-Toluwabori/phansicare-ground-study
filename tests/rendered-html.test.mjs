@@ -31,15 +31,17 @@ test("server-renders the finished PhansiCare experience", async () => {
 });
 
 test("removes the temporary starter preview", async () => {
-  const [page, layout, packageJson] = await Promise.all([
+  const [page, experience, layout, packageJson] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/PhansiCareExperience.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
 
-  assert.match(page, /function BeforeAfter/);
-  assert.match(layout, /generateMetadata/);
-  assert.doesNotMatch(page, /SkeletonPreview|codex-preview/);
+  assert.match(page, /force-static/);
+  assert.match(experience, /function BeforeAfter/);
+  assert.match(layout, /export const metadata/);
+  assert.doesNotMatch(`${page}${experience}`, /SkeletonPreview|codex-preview/);
   assert.doesNotMatch(layout, /Starter Project|codex-preview/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
 

@@ -48,3 +48,22 @@ test("removes the temporary starter preview", async () => {
   await assert.rejects(access(new URL("../app/_sites-preview/SkeletonPreview.tsx", import.meta.url)));
   await assert.rejects(access(new URL("../app/_sites-preview/preview.css", import.meta.url)));
 });
+
+test("declares a Vercel static deployment contract", async () => {
+  const [vercelConfigText, nextConfig, packageJsonText] = await Promise.all([
+    readFile(new URL("../vercel.json", import.meta.url), "utf8"),
+    readFile(new URL("../next.config.ts", import.meta.url), "utf8"),
+    readFile(new URL("../package.json", import.meta.url), "utf8"),
+  ]);
+
+  const vercelConfig = JSON.parse(vercelConfigText);
+  const packageJson = JSON.parse(packageJsonText);
+
+  assert.equal(vercelConfig.framework, null);
+  assert.equal(vercelConfig.buildCommand, "npm run build:vercel");
+  assert.equal(vercelConfig.outputDirectory, "dist/client");
+  assert.equal(vercelConfig.installCommand, "npm ci");
+  assert.equal(packageJson.scripts["build:vercel"], "vinext build");
+  assert.match(nextConfig, /process\.env\.VERCEL === "1"/);
+  assert.match(nextConfig, /output: isStaticExport \? "export"/);
+});

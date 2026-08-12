@@ -40,6 +40,9 @@ test("removes the temporary starter preview", async () => {
 
   assert.match(page, /force-static/);
   assert.match(experience, /function BeforeAfter/);
+  assert.match(experience, /HERO_AUTO_REVEAL_DELAY_MS = 2000/);
+  assert.match(experience, /heroHasInteracted/);
+  assert.match(experience, /--colour-background/);
   assert.match(layout, /export const metadata/);
   assert.doesNotMatch(`${page}${experience}`, /SkeletonPreview|codex-preview/);
   assert.doesNotMatch(layout, /Starter Project|codex-preview/);

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState, type CSSProperties } from "react";
+import { FormEvent, useEffect, useRef, useState, type CSSProperties } from "react";
 
 type Scene = {
   id: string;
@@ -15,6 +15,8 @@ type Scene = {
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH?.replace(/\/$/, "") ?? "";
 const publicAsset = (path: string) => `${basePath}${path}`;
+const HERO_AUTO_REVEAL_DELAY_MS = 2000;
+const HERO_AUTO_REVEAL_DURATION_MS = 1200;
 
 const scenes: Scene[] = [
   {
@@ -113,11 +115,12 @@ const faqs = [
   ["Which colour should I choose?", "Brown tends to feel natural, black creates contemporary contrast, and red makes a warmer statement. The best choice depends on architecture, planting and maintenance conditions."],
 ];
 
-function BeforeAfter({ scene, value, onChange, compact = false }: { scene: Scene; value: number; onChange: (value: number) => void; compact?: boolean }) {
+function BeforeAfter({ scene, value, onChange, compact = false, animated = false }: { scene: Scene; value: number; onChange: (value: number) => void; compact?: boolean; animated?: boolean }) {
   const style = { "--split": `${value}%`, "--focal": scene.focal } as CSSProperties;
+  const className = ["compare", compact && "compare--compact", animated && "compare--animated"].filter(Boolean).join(" ");
 
   return (
-    <div className={`compare ${compact ? "compare--compact" : ""}`} style={style}>
+    <div className={className} style={style}>
       <img src={scene.before} alt={`${scene.label} before decorative mulch`} draggable={false} loading={compact ? "lazy" : "eager"} decoding="async" />
       <div className="compare__after">
         <img src={scene.after} alt={`${scene.label} with decorative mulch`} draggable={false} loading={compact ? "lazy" : "eager"} decoding="async" />
@@ -145,10 +148,37 @@ function Mark() {
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [heroSplit, setHeroSplit] = useState(0);
+  const [heroAutoAnimating, setHeroAutoAnimating] = useState(false);
   const [activeScene, setActiveScene] = useState(scenes[0]);
   const [sceneSplit, setSceneSplit] = useState(50);
   const [activeColour, setActiveColour] = useState(colours[0]);
   const [submitted, setSubmitted] = useState(false);
+  const heroHasInteracted = useRef(false);
+
+  useEffect(() => {
+    const revealTimer = window.setTimeout(() => {
+      if (heroHasInteracted.current) return;
+
+      setHeroAutoAnimating(true);
+      setHeroSplit(100);
+    }, HERO_AUTO_REVEAL_DELAY_MS);
+
+    const settleTimer = window.setTimeout(
+      () => setHeroAutoAnimating(false),
+      HERO_AUTO_REVEAL_DELAY_MS + HERO_AUTO_REVEAL_DURATION_MS,
+    );
+
+    return () => {
+      window.clearTimeout(revealTimer);
+      window.clearTimeout(settleTimer);
+    };
+  }, []);
+
+  const updateHeroSplit = (value: number) => {
+    heroHasInteracted.current = true;
+    setHeroAutoAnimating(false);
+    setHeroSplit(value);
+  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -175,7 +205,7 @@ export default function Home() {
 
       <section className="hero" id="top">
         <div className="hero__visual">
-          <BeforeAfter scene={scenes[0]} value={heroSplit} onChange={setHeroSplit} />
+          <BeforeAfter scene={scenes[0]} value={heroSplit} onChange={updateHeroSplit} animated={heroAutoAnimating} />
           <div className="hero__veil" />
         </div>
         <div className="hero__content shell">
@@ -184,7 +214,7 @@ export default function Home() {
           <p className="hero__intro">Decorative coloured wood mulch designed to bring depth, contrast and a refined finish to outdoor environments.</p>
           <div className="actions">
             <a className="button button--light" href="#visualise">Visualise my space</a>
-            <button className="button button--ghost" type="button" onClick={() => setHeroSplit(heroSplit > 50 ? 0 : 100)}>
+            <button className="button button--ghost" type="button" onClick={() => updateHeroSplit(heroSplit > 50 ? 0 : 100)}>
               {heroSplit > 50 ? "Reveal before" : "Reveal transformation"}
             </button>
           </div>
@@ -246,7 +276,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="section section--clay" id="colours">
+      <section className="section section--clay" id="colours" style={{ "--colour-background": activeColour.swatch } as CSSProperties}>
         <div className="shell colour-grid">
           <div>
             <p className="eyebrow eyebrow--light">04 — Colour explorer</p>
